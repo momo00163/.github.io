@@ -815,7 +815,7 @@
       try {
         $('exportStatus').textContent = '準備中…';
         const b = await renderSequence();
-        const stem = 'stormworks_song_' + new Date().toISOString().replace(/[:.]/g, '-');
+        const stem = 'song_' + new Date().toISOString().replace(/[:.]/g, '-');
         if (kind === 'wav') downloadBlob(mergedBufferToWav(b), stem + '.wav');
         else downloadBlob(bufferToMp3(b), stem + '.mp3');
         $('exportStatus').textContent = kind.toUpperCase() + ' 完了';
