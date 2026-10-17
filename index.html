@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>音madメーカー</title>
+  <style>
+    :root {
+      --bg: #0c1016;
+      --panel: #141a22;
+      --panel2: #1b2430;
+      --line: #2b3644;
+      --text: #e8eef5;
+      --muted: #cccccc;
+      --accent: #aaa;
+      --ok: #11aaaa;
+      --warn: #aa1111;
+      --bad: #ff6b6b
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #0a0e13, #10161e 45%, #0b1016);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: auto;
+      padding: 22px
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 5px 0 20px
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 16px
+    }
+
+    .panel {
+      background: rgba(20, 26, 34, .96);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 40px #0005
+    }
+
+    .panel h2 {
+      font-size: 16px;
+      margin: 0 0 10px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    button,
+    .fileBtn,
+    select,
+    input[type=number],
+    input[type=text] {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 9px 11px
+    }
+
+    button {
+      cursor: pointer
+    }
+
+    button:hover,
+    .fileBtn:hover {
+      border-color: #4e657f
+    }
+
+    .primary {
+      background: #173746;
+      border-color: #2f9dc2
+    }
+
+    .success {
+      background: #173a2c;
+      border-color: #2d9c6b
+    }
+
+    .drop {
+      border: 1.5px dashed #506277;
+      border-radius: 12px;
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+      margin: 10px 0;
+      transition: .15s
+    }
+
+    .drop.hot {
+      border-color: var(--accent);
+      background: #10232c
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #202a36;
+      border: 1px solid #324153;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px
+    }
+
+    .badge.ok {
+      color: var(--ok);
+      border-color: #2d6d55
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      border-color: #725f29
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px
+    }
+
+    .card {
+      background: #10161d;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px
+    }
+
+    .card .name {
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .list {
+      max-height: 300px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px
+    }
+
+    .item {
+      padding: 9px 10px;
+      border-bottom: 1px solid #202a35;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center
+    }
+
+    .item:last-child {
+      border-bottom: 0
+    }
+
+    progress {
+      width: 100%;
+      height: 9px
+    }
+
+    #log {
+      white-space: pre-wrap;
+      max-height: 190px;
+      overflow: auto;
+      background: #0a0f14;
+      border: 1px solid #202834;
+      border-radius: 8px;
+      padding: 10px;
+      font: 12px ui-monospace, Consolas, monospace
+    }
+
+    .kbd {
+      font: 11px ui-monospace, Consolas, monospace;
+      border: 1px solid #394657;
+      border-radius: 5px;
+      padding: 2px 5px;
+      color: #c8d4df
+    }
+
+    .range {
+      width: 130px
+    }
+
+    .meter {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center
+    }
+
+    @media(max-width:900px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script> 
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>momo's音mad製造機</h1>
+    <div class="sub">MIDIを音mad化</div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>音源</h2>
+        <div id="dropSamples" class="drop">
+          音源をここへドラッグ＆ドロップ<br>
+          <span class="small">WAV / MP3 / OGG / M4A / AAC とか</span>
+        </div>
+        <div class="row">
+          <label class="fileBtn" hidden>音源フォルダ<input id="sampleInput" type="file" webkitdirectory directory multiple
+              hidden></label>
+          <label class="fileBtn">音源ファイル<input id="sampleFiles" type="file" accept="audio/*" multiple hidden></label>
+          <label class="fileBtn">MIDI<input id="midiInput" type="file" accept=".mid,.midi,audio/midi" hidden></label>
+        </div>
+        <div class="small" style="margin-top:8px" hidden>
+          ファイル名に <span class="kbd">Piano_C4.wav</span> / <span class="kbd">Horn_F#3.mp3</span> のように音名を入れると確実です。
+          音名が無ければ簡易ピッチ解析を試します。フォルダ名や先頭文字から楽器名も自動グループ化します。
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>レンダリング</h2>
+        <div class="row">
+          <button id="play" class="primary">▶ 再生</button>
+          <button id="stop">■ 停止</button>
+          <button id="demo" class="success" hidden>♪ デモ曲</button>
+          <label hidden>BPM <input id="bpm" type="number" value="120" min="30" max="300" step="1" style="width:85px" hidden></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="exportWav">⬇ WAV出力</button>
+          <button id="exportMp3">⬇ MP3出力(おすすめ)</button>
+          <button id="exportJson">⬇ 演奏データ(JSON)</button>
+          <span id="exportStatus" class="badge">未出力</span>
+        </div>
+        <div style="margin-top:12px" class="meter">
+          <progress id="prog" value="0" max="1"></progress><span id="time">0:00 / 0:00</span>
+        </div>
+        <div class="small" style="margin-top:10px" hidden>
+          MIDIを入れた場合はノートオン/オフとテンポを読み取り、各トラックを音源グループへ自動割当します。
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:16px" id="performancePanel">
+      <h2>レンダリングモニター</h2>
+      <div class="cards">
+        <div class="card"><div class="small">レンダリング方式</div><div class="name" id="perfMode">初期化中</div></div>
+        <div class="card"><div class="small">ストームワーカー</div><div class="name" id="perfWorkers">—</div></div>
+        <div class="card"><div class="small">処理時間</div><div class="name" id="perfElapsed">—</div></div>
+        <div class="card"><div class="small">実時間比</div><div class="name" id="perfSpeed">—</div></div>
+      </div>
+      <div style="margin-top:12px" class="meter">
+        <progress id="renderProgress" value="0" max="1"></progress><span id="renderPct">待機中</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span id="gpuStatus" class="badge">GPU確認中</span>
+        <span id="workerStatus" class="badge">Worker確認中</span>
+        <span id="perfMemory" class="badge">メモリ負荷: 未計測</span>
+      </div>
+      <div class="small" style="margin-top:10px" hidden>
+        音声ミキシングはWeb Workerで複数スレッドに分散します。GPUは音声合成そのものより波形・スペクトラム表示に向くため、GPU対応状況を表示し、音声処理はCPU並列化を優先します。ファイルを直接開いた場合とWebサーバー経由では利用可能な機能が異なることがあります。
+      </div>
+      <canvas id="perfCanvas" width="900" height="110" style="display:block;width:100%;height:110px;margin-top:12px;background:#0a0f14;border:1px solid #202834;border-radius:8px"></canvas>
+    </section>
+
+    <section class="panel" style="margin-top:16px">
+      <h2>音源ライブラリ <span id="sampleCount" class="badge">0 files</span> <span id="groupCount" class="badge">0
+          instruments</span></h2>
+      <div id="cards" class="cards"></div>
+    </section>
+
+    <section class="panel" style="margin-top:16px">
+      <h2>MIDIトラック → 音源の自動割当</h2>
+      <div id="tracks" class="list">
+        <div class="item"><span class="small">まだMIDIが読み込まれていません。</span></div>
+      </div>
+      <div class="small" style="margin-top:8px">
+        例：MIDIの「Trumpet」→ 音源グループ「Trumpet」。一致しなければ先頭の音源グループを使用します。
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:16px">
+      <h2>ログ</h2>
+      <div id="log">起動しました。</div>
+    </section>
+  </div>
+
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const audio = new (window.AudioContext || window.webkitAudioContext)();
+    const state = {
+      groups: new Map(), samples: [], midi: null, events: [], tracks: [],
+      playing: false, startedAt: 0, timer: null, sources: new Set(), demo: false, duration: 0
+    };
+
+    const perf = { started: 0, workers: [], renderBusy: false };
+    function setPerf(id, value) { const el = $(id); if (el) el.textContent = value; }
+    function initPerfMonitor() {
+      const gpu = !!navigator.gpu;
+      setPerf('gpuStatus', gpu ? 'WebGPU対応' : 'WebGPU非対応 / CPU処理します');
+      setPerf('workerStatus', typeof Worker !== 'undefined' ? 'Web Worker対応' : 'Web Worker非対応');
+      setPerf('perfMode', typeof Worker !== 'undefined' ? 'CPUマルチスレッド' : 'Audio Engine fallback');
+      drawPerfGraph(0);
+    } 
+    function drawPerfGraph(progress) {3
+      const c = $('perfCanvas'); if (!c) return;
+      const ctx = c.getContext('2d'), w = c.width, h = c.height;
+      ctx.clearRect(0,0,w,h);
+      ctx.strokeStyle = '#263545'; ctx.lineWidth = 1;
+      for (let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,h*i/6);ctx.lineTo(w,h*i/6);ctx.stroke();}
+      ctx.fillStyle = '#62d6ff';
+      const bars = Math.max(1, Math.min(60, Math.ceil(w/15)));
+      for(let i=0;i<bars;i++){
+        const x=i*w/bars+2, bw=Math.max(2,w/bars-4);
+        const wave=(Math.sin(i*.48)*.22+Math.sin(i*.17)*.18+.35);
+        const bh=(h-12)*Math.max(.04, wave*(.35+progress*.65));
+        ctx.fillRect(x,(h-bh)/2,bw,bh);
+      }
+      ctx.fillStyle='#8fa0b5';ctx.font='12px system-ui';ctx.fillText('RENDER LOAD / PROGRESS',12,16);
+      if(progress>0){ctx.fillStyle='#63e6a8';ctx.fillRect(0,h-4,w*progress,4);}
+    }
+    const MIX_WORKER_SOURCE = `
+      self.onmessage = e => {
+        const {events, samples, length, sampleRate} = e.data;
+        const left = new Float32Array(length), right = new Float32Array(length);
+        for(let ei=0; ei<events.length; ei++){
+          const ev=events[ei], sm=samples[ev.sampleKey];
+          if(!sm || !sm.channels || !sm.channels.length) continue;
+          const src=sm.channels[0], srcR=sm.channels[1] || src;
+          const start=Math.max(0,Math.floor(ev.start*sampleRate));
+          const end=Math.min(length,Math.ceil((ev.start+ev.dur)*sampleRate));
+          const root=sm.note==null ? ev.note : sm.note;
+          const rate=Math.pow(2,(ev.note-root)/12)*sm.sampleRate/sampleRate;
+          const durS=Math.max(1,Math.floor(ev.dur*sampleRate));
+          const rel=Math.max(.02,Math.min(.12,ev.dur*.08));
+          const vel=(ev.vel==null?100:ev.vel)/127;
+          const peak=.78*vel;
+          for(let out=start;out<end;out++){
+            const t=(out-start)/sampleRate;
+            const pos=(out-start)*rate;
+            if(pos>=src.length-1) break;
+            const ix=pos|0, frac=pos-ix;
+            const l=src[ix]*(1-frac)+src[ix+1]*frac;
+            const r=srcR[Math.min(ix,srcR.length-1)]*(1-frac)+srcR[Math.min(ix+1,srcR.length-1)]*frac;
+            let env;
+            if(t<.006) env=peak*(t/.006);
+            else if(t<Math.max(.008,ev.dur-rel)) env=peak;
+            else env=peak*Math.max(0,(ev.dur-t)/Math.max(.001,ev.dur-Math.max(.008,ev.dur-rel)));
+            left[out]+=l*env; right[out]+=r*env;
+          }
+        }
+        self.postMessage({left:left.buffer,right:right.buffer},[left.buffer,right.buffer]);
+      };
+    `;
+    async function renderParallel(seq) {
+      if (typeof Worker === 'undefined') throw Error('Web Worker非対応');
+      const sr=44100, tail=.25, length=Math.ceil((seq.duration+tail)*sr);
+      if (!seq.events.length) throw Error('演奏できるノートがありません。');
+      // Bound memory: each worker allocates two Float32 output channels.
+      const hardware=Math.max(1,navigator.hardwareConcurrency||2);
+      const byMemory=Math.max(1,Math.floor((128*1024*1024)/(length*2*4)));
+      const count=Math.max(1,Math.min(8,hardware,byMemory,seq.events.length));
+      const groups=[...state.groups.entries()];
+      const sampleMap=new Map();
+      for(const [g,arr] of groups) for(const sm of arr) sampleMap.set(sm, g+'::'+sm.name+'::'+sm.note);
+      const workerEvents=Array.from({length:count},()=>[]);
+      seq.events.forEach((ev,i)=>{
+        const sm=chooseSample(ev.group,ev.note);
+        if(!sm) return;
+        const key=sampleMap.get(sm);
+        workerEvents[i%count].push({...ev,sampleKey:key});
+      });// MP3エンコード用
+      const allSamples={};
+      for(const [sm,key] of sampleMap){
+        if(!workerEvents.some(es=>es.some(ev=>ev.sampleKey===key))) continue;
+        const channels=[];
+        for(let ch=0;ch<Math.min(2,sm.buffer.numberOfChannels);ch++) channels.push(sm.buffer.getChannelData(ch).slice());
+        if(!channels.length) channels.push(sm.buffer.getChannelData(0).slice());
+        allSamples[key]={note:sm.note,sampleRate:sm.buffer.sampleRate,channels};
+      }
+      const workerUrls=[], workers=[];
+      try {
+        const blob=new Blob([MIX_WORKER_SOURCE],{type:'text/javascript'});
+        const url=URL.createObjectURL(blob);
+        for(let i=0;i<count;i++){
+          const worker=new Worker(url); workers.push(worker);
+          const usedKeys=[...new Set(workerEvents[i].map(e=>e.sampleKey))], samples={};
+          const transfers=[];
+          for(const key of usedKeys){
+            const original=allSamples[key]; if(!original) continue;
+            const channels=original.channels.map(ch=>ch.slice());
+            channels.forEach(ch=>transfers.push(ch.buffer));
+            samples[key]={note:original.note,sampleRate:original.sampleRate,channels};
+          }
+          workerUrls.push(url);
+          worker.postMessage({events:workerEvents[i],samples,length,sampleRate:sr},transfers);
+        }
+        setPerf('perfMode','CPUマルチスレッド');
+        setPerf('perfWorkers',count+' threads');
+        setPerf('perfMemory','出力バッファ 約'+Math.round(length*2*4*count/1048576)+' MB');
+        $('renderProgress').value=.15; setPerf('renderPct','並列ミックス中…'); drawPerfGraph(.15);
+        const results=await Promise.all(workers.map(w=>new Promise((resolve,reject)=>{
+          w.onmessage=e=>resolve(e.data); w.onerror=e=>reject(Error(e.message||'Workerエラー'));
+        })));
+        const out=new OfflineAudioContext(2,length,sr);
+        const l=out.createBuffer(2,length,sr), L=l.getChannelData(0), R=l.getChannelData(1);
+        for(const result of results){
+          const a=new Float32Array(result.left),b=new Float32Array(result.right);
+          for(let i=0;i<length;i++){L[i]+=a[i];R[i]+=b[i];}
+        }
+        $('renderProgress').value=.9; setPerf('renderPct','音声バッファを構築中…'); drawPerfGraph(.9);
+        return l;
+      } finally {
+        workers.forEach(w=>w.terminate());
+        workerUrls.forEach(u=>URL.revokeObjectURL(u));
+      }
+    }
+
+    const GM_NAMES = [
+      "Acoustic Grand Piano", "Bright Acoustic Piano", "Electric Grand Piano", "Honky-tonk Piano", "Electric Piano 1", "Electric Piano 2", "Harpsichord", "Clavinet",
+      "Celesta", "Glockenspiel", "Music Box", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Dulcimer",
+      "Drawbar Organ", "Percussive Organ", "Rock Organ", "Church Organ", "Reed Organ", "Accordion", "Harmonica", "Tango Accordion",
+      "Acoustic Guitar (nylon)", "Acoustic Guitar (steel)", "Electric Guitar (jazz)", "Electric Guitar (clean)", "Electric Guitar (muted)", "Overdriven Guitar", "Distortion Guitar", "Guitar harmonics",
+      "Acoustic Bass", "Electric Bass (finger)", "Electric Bass (pick)", "Fretless Bass", "Slap Bass 1", "Slap Bass 2", "Synth Bass 1", "Synth Bass 2",
+      "Violin", "Viola", "Cello", "Contrabass", "Tremolo Strings", "Pizzicato Strings", "Orchestral Harp", "Timpani",
+      "String Ensemble 1", "String Ensemble 2", "SynthStrings 1", "SynthStrings 2", "Choir Aahs", "Voice Oohs", "Synth Voice", "Orchestra Hit",
+      "Trumpet", "Trombone", "Tuba", "Muted Trumpet", "French Horn", "Brass Section", "SynthBrass 1", "SynthBrass 2",
+      "Soprano Sax", "Alto Sax", "Tenor Sax", "Baritone Sax", "Oboe", "English Horn", "Bassoon", "Clarinet",
+      "Piccolo", "Flute", "Recorder", "Pan Flute", "Blown Bottle", "Shakuhachi", "Whistle", "Ocarina",
+      "Lead 1 (square)", "Lead 2 (sawtooth)", "Lead 3 (calliope)", "Lead 4 (chiff)", "Lead 5 (charang)", "Lead 6 (voice)", "Lead 7 (fifths)", "Lead 8 (bass + lead)",
+      "Pad 1 (new age)", "Pad 2 (warm)", "Pad 3 (polysynth)", "Pad 4 (choir)", "Pad 5 (bowed)", "Pad 6 (metallic)", "Pad 7 (halo)", "Pad 8 (sweep)"
+    ];
+
+    function log(s) { $('log').textContent += '\\n' + s; $('log').scrollTop = $('log').scrollHeight; }
+
+    function noteNameToMidi(s) {
+      s = s.trim().replace('♯', '#').replace('♭', 'b');
+      const m = s.match(/^([A-Ga-g])([#b]?)(-?\\d+)$/); if (!m) return null;
+      const pc = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 }[m[1].toUpperCase() + m[2]];
+      if (pc == null) return null;
+      return pc + (+m[3] + 1) * 12;
+    }
+    function midiToName(n) {
+      const pc = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      return pc[n % 12] + (Math.floor(n / 12) - 1);
+    }
+    function inferNote(file) {
+      const n = file.name.replace(/\\.[^.]+$/, '');
+      let m = n.match(/(?:^|[_\\-\\s\\.])([A-Ga-g](?:#|b)?-?\\d)(?:$|[_\\-\\s\\.])/);
+      if (!m) m = n.match(/([A-Ga-g](?:#|b)?-?\\d)/);
+      return m ? noteNameToMidi(m[1]) : null;
+    }
+    function inferGroup(file) {
+      const rel = file.webkitRelativePath || file.name;
+      const parts = rel.split('/').filter(Boolean);
+      let base = parts.length > 1 ? parts[parts.length - 2] : file.name.replace(/\\.[^.]+$/, '');
+      base = base.replace(/[_\\-\\.](?:C|D|E|F|G|A|B)(?:#|b)?-?\\d+$/i, '');
+      base = base.replace(/\\s*(?:C|D|E|F|G|A|B)(?:#|b)?-?\\d+\\s*$/i, '');
+      return base.trim() || 'Default';
+    }
+    async function detectPitch(buffer) {
+      const ch = buffer.numberOfChannels;
+      const data = buffer.getChannelData(0);
+      const sr = buffer.sampleRate;
+      const maxN = Math.min(data.length, sr * 1.8);
+      const ds = Math.max(1, Math.floor(maxN / 50000));
+      const x = []; for (let i = 0; i < maxN; i += ds)x.push(data[i]);
+      let rms = 0; for (const v of x) rms += v * v;
+      rms = Math.sqrt(rms / x.length); if (rms < 0.003) return null;
+      const minF = 45, maxF = 1600;
+      const minLag = Math.floor(sr / ds / maxF), maxLag = Math.floor(sr / ds / minF);
+      let bestLag = -1, best = -1;
+      for (let lag = Math.max(2, minLag); lag <= Math.min(maxLag, Math.floor(x.length / 2)); lag++) {
+        let a = 0, b = 0, c = 0;
+        for (let i = 0; i < x.length - lag; i++) { const u = x[i], v = x[i + lag]; a += u * v; b += u * u; c += v * v; }
+        const score = a / Math.sqrt((b || 1) * (c || 1));
+        if (score > best) { best = score; bestLag = lag; }
+      }
+      if (bestLag < 0 || best < 0.45) return null;
+      const f = (sr / ds) / bestLag;
+      const midi = 69 + 12 * Math.log2(f / 440);
+      if (midi < 24 || midi > 108) return null;
+      return Math.round(midi);
+    }
+    function addSample(file, buffer, note, group) {
+      const s = { file, buffer, note, group, name: file.name };
+      state.samples.push(s);
+      if (!state.groups.has(group)) state.groups.set(group, []);
+      state.groups.get(group).push(s);
+    }
+    function redrawCards() {
+      $('sampleCount').textContent = state.samples.length + ' files';
+      $('groupCount').textContent = state.groups.size + ' instruments';
+      $('cards').innerHTML = '';
+      for (const [g, arr] of state.groups) {
+        const c = document.createElement('div'); c.className = 'card';
+        const notes = arr.map(s => s.note != null ? midiToName(s.note) : '?').join(', ');
+        c.innerHTML = '<div class="name">' + esc(g) + '</div><div class="small">' + arr.length + ' sample(s)</div><div class="small">' + esc(notes || '解析中') + '</div>';
+        $('cards').appendChild(c);
+      }
+    }
+    function esc(x) { return String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+    async function processFiles(files) {
+      for (const file of files) {
+        if (!file.type.startsWith('audio/')) continue;
+        try {
+          const buf = await audio.decodeAudioData(await file.arrayBuffer());
+          let note = inferNote(file);
+          if (note == null) note = await detectPitch(buf);
+          const group = inferGroup(file);
+          addSample(file, buf, note, group);
+          log('音源: ' + file.name + ' → ' + group + ' / ' + (note != null ? midiToName(note) : 'pitch未検出'));
+          redrawCards();
+        } catch (e) { log('読み込み失敗: ' + file.name + ' / ' + e.message); }
+      }
+    }
+    $('sampleInput').onchange = e => processFiles([...e.target.files]);
+    $('sampleFiles').onchange = e => processFiles([...e.target.files]);
+
+    for (const el of [$('dropSamples')]) {
+      ['dragenter', 'dragover'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); el.classList.add('hot') }));
+      ['dragleave', 'drop'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); el.classList.remove('hot') }));
+      el.addEventListener('drop', e => {
+        const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('audio/'));
+        processFiles(files);
+      });
+    }
+
+    /* ---------- MIDI parser ---------- */
+    function u16(d, p) { return (d[p] << 8) | d[p + 1] }
+    function u32(d, p) { return (d[p] * 0x1000000) + (d[p + 1] << 16) + (d[p + 2] << 8) + d[p + 3] }
+    function vlq(d, p) { let v = 0, b; do { b = d[p++]; v = (v << 7) | (b & 127) } while (b & 128); return [v, p] }
+    function parseMidi(buf) {
+      const d = new Uint8Array(buf), te = 0x4d546864;
+      if (u32(d, 0) !== te) throw Error('MIDIヘッダが見つかりません');
+      const format = u16(d, 8), ntr = u16(d, 10), div = u16(d, 12);
+      let p = 14, tracks = [];
+      for (let ti = 0; ti < ntr; ti++) {
+        if (u32(d, p) !== 0x4d54726b) throw Error('MTrkが見つかりません');
+        const len = u32(d, p + 4), end = p + 8 + len; p += 8;
+        let t = 0, status = 0, program = 0, name = '';
+        const ev = [];
+        while (p < end) {
+          let a;[a, p] = vlq(d, p); t += a;
+          let b = d[p++];
+          if (b < 0x80) { p--; b = status } else status = b;
+          if (b === 0xff) {
+            const type = d[p++]; let n;[n, p] = vlq(d, p); const dat = d.slice(p, p + n); p += n;
+            if (type === 0x03) name = new TextDecoder().decode(dat);
+            else if (type === 0x51 && n === 3) { const us = (dat[0] << 16) | (dat[1] << 8) | dat[2]; ev.push({ tick: t, type: 'tempo', us }) }
+            else if (type === 0x2f) break;
+          } else if (b === 0xf0 || b === 0xf7) { let n;[n, p] = vlq(d, p); p += n }
+          else {
+            const hi = b & 0xf0, ch = b & 15;
+            if (hi === 0xc0 || hi === 0xd0) { const x = d[p++]; if (hi === 0xc0) program = x }
+            else {
+              const x = d[p++], y = d[p++];
+              if (hi === 0x90 && y !== 0) ev.push({ tick: t, type: 'on', ch, n: x, v: y, program });
+              else if (hi === 0x80 || (hi === 0x90 && y === 0)) ev.push({ tick: t, type: 'off', ch, n: x, v: y, program });
+            }
+          }
+        }
+        tracks.push({ index: ti, name: name || ('Track ' + (ti + 1)), program, events: ev });
+        p = end;
+      }
+      return { format, ntr, div, tracks };
+    }
+    $('midiInput').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        state.midi = parseMidi(await f.arrayBuffer());
+        buildTracks();
+        log('MIDI: ' + f.name + ' / ' + state.midi.ntr + ' tracks / ' + state.midi.div + ' ticks');
+      } catch (err) { log('MIDI解析失敗: ' + err.message) }
+    };
+
+    function guessGroup(track) {
+      const s = (track.name + ' ' + (GM_NAMES[track.program] || '')).toLowerCase();
+      let best = null, score = -1;
+      for (const g of state.groups.keys()) {
+        const gl = g.toLowerCase();
+        let sc = 0;
+        for (const w of gl.split(/[^a-z0-9ぁ-んァ-ン一-龥]+/).filter(Boolean)) if (s.includes(w)) sc += 3;
+        if (s.includes(gl)) sc += 5;
+        if (sc > score) { score = sc; best = g }
+      }
+      return best || [...state.groups.keys()][0] || '';
+    }
+    function buildTracks() {
+      $('tracks').innerHTML = '';
+      state.tracks = [];
+      state.midi.tracks.forEach((t, i) => {
+        const row = document.createElement('div'); row.className = 'item';
+        const sel = document.createElement('select');
+        [...state.groups.keys()].forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g; sel.appendChild(o) });
+        const guessed = guessGroup(t); if (guessed) sel.value = guessed;
+        const title = (t.name || ('Track ' + (i + 1))) + ' / ' + (GM_NAMES[t.program] || ('Program ' + (t.program + 1)));
+        row.innerHTML = '<div><b>' + esc(title) + '</b><div class="small">' + t.events.length + ' events</div></div>';
+        row.appendChild(sel); $('tracks').appendChild(row);
+        state.tracks.push({ midi: t, select: sel });
+      });
+    }
+
+    /* ---------- timing ---------- */
+    function chooseSample(group, note) {
+      const arr = state.groups.get(group) || [];
+      if (!arr.length) return null;
+      let exact = arr.find(s => s.note === note);
+      if (exact) return exact;
+      let known = arr.filter(s => s.note != null);
+      if (!known.length) return arr[0];
+      known.sort((a, b) => Math.abs(a.note - note) - Math.abs(b.note - note));
+      return known[0];
+    }
+    function cancelSources() { for (const s of state.sources) { try { s.stop() } catch { } } state.sources.clear() }
+    function stop() {
+      state.playing = false; cancelSources();
+      if (state.timer) clearInterval(state.timer); state.timer = null;
+      $('prog').value = 0; $('time').textContent = '0:00 / ' + fmt(state.duration);
+    }
+    function fmt(sec) { sec = Math.max(0, sec); return Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0') }
+
+    function demoSong() {
+      const melody = [
+        [0, 0, 62, .4], [.5, 0, 62, .4], [1, 0, 69, .4], [1.5, 0, 69, .4], [2, 0, 71, .4], [2.5, 0, 71, .4], [3, 0, 69, .8],
+        [4, 0, 67, .4], [4.5, 0, 67, .4], [5, 0, 66, .4], [5.5, 0, 66, .4], [6, 0, 64, .4], [6.5, 0, 64, .4], [7, 0, 62, .8]
+      ];
+      const bass = [[0, 0, 50, 1.8], [2, 0, 45, 1.8], [4, 0, 43, 1.8], [6, 0, 45, 1.8]];
+      return {
+        events: [
+          ...melody.map(x => ({ start: x[0], dur: x[3], note: x[2], group: [...state.groups.keys()][0] })),
+          ...bass.map(x => ({ start: x[0], dur: x[3], note: x[2], group: [...state.groups.keys()][0] }))
+        ],
+        duration: 8
+      };
+    }
+    function midiToEvents() {
+      const div = state.midi.div;
+      const all = [];
+      let maxTick = 0;
+      for (const tr of state.tracks) {
+        let group = tr.select.value;
+        const active = new Map();
+        for (const e of tr.midi.events) {
+          maxTick = Math.max(maxTick, e.tick);
+          if (e.type === 'on') active.set(e.ch + ':' + e.n, { tick: e.tick, v: e.v });
+          if (e.type === 'off') {
+            const k = e.ch + ':' + e.n, o = active.get(k);
+            if (o) { all.push({ tick: o.tick, dur: Math.max(1, e.tick - o.tick), note: e.n, vel: o.v, group }); active.delete(k); }
+          }
+        }
+      }
+      const tempos = [];
+      for (const t of state.midi.tracks) for (const e of t.events) if (e.type === 'tempo') tempos.push(e);
+      tempos.sort((a, b) => a.tick - b.tick);
+      let tempoUs = 500000, lastTick = 0, sec = 0, ti = 0;
+      const tickToSec = (tick) => {
+        let s = sec, lt = lastTick, tm = tempoUs;
+        while (ti < tempos.length && tempos[ti].tick <= tick) {
+          const tt = tempos[ti].tick;
+          s += (tt - lt) * tm / div / 1e6; lt = tt; tm = tempos[ti].us; ti++;
+        }
+        return s + (tick - lt) * tm / div / 1e6;
+      };
+      /* tickToSec above mutates cursor, so generate sorted by tick in one pass */
+      let idx = 0, tm = 500000, lt = 0, ss = 0;
+      const secAt = {};
+      const ticks = [...new Set(all.flatMap(e => [e.tick, e.tick + e.dur]))].sort((a, b) => a - b);
+      for (const tick of ticks) {
+        while (idx < tempos.length && tempos[idx].tick <= tick) {
+          const tt = tempos[idx].tick; ss += (tt - lt) * tm / div / 1e6; lt = tt; tm = tempos[idx].us; idx++;
+        }
+        secAt[tick] = ss + (tick - lt) * tm / div / 1e6;
+      }
+      return { events: all.map(e => ({ start: secAt[e.tick], dur: Math.max(.03, secAt[e.tick + e.dur] - secAt[e.tick]), note: e.note, vel: e.vel, group: e.group })), duration: secAt[maxTick] || 1 };
+    }
+    function getSequence() {
+      if (state.midi && state.tracks.length) return midiToEvents();
+      return demoSong();
+    }
+    function scheduleSequence(seq, offline) {
+      for (const e of seq.events) {
+        const s = chooseSample(e.group, e.note); if (!s) continue;
+        const src = offline.createBufferSource(); src.buffer = s.buffer;
+        const gain = offline.createGain();
+        const vel = (e.vel || 100) / 127;
+        const rel = Math.max(.02, Math.min(.12, e.dur * .08));
+        gain.gain.setValueAtTime(0, e.start);
+        gain.gain.linearRampToValueAtTime(.78 * vel, e.start + .006);
+        gain.gain.setValueAtTime(.78 * vel, e.start + Math.max(.008, e.dur - rel));
+        gain.gain.linearRampToValueAtTime(0, e.start + e.dur);
+        const root = s.note != null ? s.note : e.note;
+        src.playbackRate.value = Math.pow(2, (e.note - root) / 12);
+        src.connect(gain).connect(offline.destination);
+        src.start(e.start);
+        src.stop(e.start + Math.max(.03, e.dur) + .02);
+      }
+    }
+    function playEvent(ev) {
+      const s = chooseSample(ev.group, ev.note); if (!s) return;
+      const src = audio.createBufferSource(); src.buffer = s.buffer;
+      const gain = audio.createGain();
+      const out = audio.createGain(); out.gain.value = .65;
+      const rel = Math.max(.02, Math.min(.12, ev.dur * .08));
+      const vel = (ev.vel || 100) / 127;
+      gain.gain.setValueAtTime(0, audio.currentTime);
+      gain.gain.linearRampToValueAtTime(.78 * vel, audio.currentTime + .006);
+      gain.gain.setValueAtTime(.78 * vel, audio.currentTime + Math.max(.008, ev.dur - rel));
+      gain.gain.linearRampToValueAtTime(0, audio.currentTime + ev.dur);
+      const root = s.note != null ? s.note : ev.note;
+      src.playbackRate.value = Math.pow(2, (ev.note - root) / 12);
+      src.connect(gain).connect(out).connect(audio.destination);
+      src.start();
+      src.stop(audio.currentTime + Math.max(.03, ev.dur) + .02);
+      state.sources.add(src); src.onended = () => state.sources.delete(src);
+    }
+    function mergedBufferToWav(buffer) {
+      const ch = buffer.numberOfChannels, sr = buffer.sampleRate, n = buffer.length;
+      const inter = new Float32Array(n * ch);
+      let k = 0;
+      for (let i = 0; i < n; i++)for (let c = 0; c < ch; c++)inter[k++] = buffer.getChannelData(c)[i];
+      const b = new ArrayBuffer(44 + inter.length * 2), v = new DataView(b);
+      const ws = (o, s) => [...s].forEach((x, i) => v.setUint8(o + i, x.charCodeAt(0)));
+      ws(0, 'RIFF'); v.setUint32(4, 36 + inter.length * 2, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+      v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+      ws(36, 'data'); v.setUint32(40, inter.length * 2, true);
+      let p = 44;
+      for (const x of inter) { let q = Math.max(-1, Math.min(1, x)); v.setInt16(p, q < 0 ? q * 32768 : q * 32767, true); p += 2; }
+      return new Blob([b], { type: 'audio/wav' });
+    }
+    function bufferToMp3(buffer) {
+      if (!window.lamejs) throw Error('MP3 encoderの読み込みに失敗しました。インターネット接続を確認してください。');
+      const sr = buffer.sampleRate, ch = buffer.numberOfChannels;
+      const L = buffer.getChannelData(0);
+      const R = ch > 1 ? buffer.getChannelData(1) : L;
+      const enc = new lamejs.Mp3Encoder(ch, sr, 192), block = 1152, parts = [];
+      for (let i = 0; i < L.length; i += block) {
+        const end = Math.min(i + block, L.length), l = new Int16Array(end - i), r = new Int16Array(end - i);
+        for (let j = i; j < end; j++) { l[j - i] = Math.max(-32768, Math.min(32767, L[j] * 32767)); r[j - i] = Math.max(-32768, Math.min(32767, R[j] * 32767)); }
+        const data = ch > 1 ? enc.encodeBuffer(l, r) : enc.encodeBuffer(l);
+        if (data.length) parts.push(new Int8Array(data));
+      }
+      const end = enc.flush(); if (end.length) parts.push(new Int8Array(end));
+      return new Blob(parts, { type: 'audio/mpeg' });
+    }
+    function downloadBlob(blob, name) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    async function renderSequence() {
+      const seq = getSequence();
+      if (!seq.events.length) throw Error('演奏できるノートがありません。');
+      perf.started = performance.now();
+      perf.renderBusy = true;
+      $('exportStatus').textContent = 'レンダリング中…';
+      $('renderProgress').value = 0;
+      setPerf('renderPct','準備中…');
+      try {
+        let buffer;
+        if (typeof Worker !== 'undefined') {
+          buffer = await renderParallel(seq);
+        } else {
+          setPerf('perfMode','Audio Engine fallback');
+          setPerf('perfWorkers','1');
+          const sr=44100, len=Math.ceil((seq.duration+.25)*sr);
+          const off=new OfflineAudioContext(2,len,sr);
+          scheduleSequence(seq,off);
+          buffer=await off.startRendering();
+        }
+        const elapsed=(performance.now()-perf.started)/1000;
+        setPerf('perfElapsed',elapsed.toFixed(2)+' s');
+        setPerf('perfSpeed',(seq.duration/Math.max(.001,elapsed)).toFixed(2)+'× real-time');
+        $('renderProgress').value=1; setPerf('renderPct','完了');
+        drawPerfGraph(1);
+        return buffer;
+      } finally { perf.renderBusy=false; }
+    }
+    async function exportAudio(kind) {
+      try {
+        $('exportStatus').textContent = '準備中…';
+        const b = await renderSequence();
+        const stem = 'stormworks_song_' + new Date().toISOString().replace(/[:.]/g, '-');
+        if (kind === 'wav') downloadBlob(mergedBufferToWav(b), stem + '.wav');
+        else downloadBlob(bufferToMp3(b), stem + '.mp3');
+        $('exportStatus').textContent = kind.toUpperCase() + ' 完了';
+        log(kind.toUpperCase() + 'を書き出しました。');
+      } catch (e) { $('exportStatus').textContent = 'エラー'; log('出力失敗: ' + e.message); }
+    }
+    $('exportWav').onclick = () => exportAudio('wav');
+    $('exportMp3').onclick = () => exportAudio('mp3');
+    $('exportJson').onclick = () => {
+      try {
+        const seq = getSequence();
+        const data = { version: 1, sampleRate: 44100, duration: seq.duration, events: seq.events };
+        downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'stormworks_song_data.json');
+        $('exportStatus').textContent = 'JSON 完了'; log('演奏データJSONを書き出しました。');
+      } catch (e) { log('JSON出力失敗: ' + e.message); }
+    }
+
+    async function play() {
+      await audio.resume();
+      stop();
+      const seq = getSequence();
+      if (!seq.events.length) { log('演奏できるノートがありません。'); return }
+      state.playing = true; state.startedAt = performance.now(); state.duration = seq.duration;
+      for (const e of seq.events) {
+        const ms = e.start * 1000;
+        setTimeout(() => { if (state.playing) playEvent(e) }, ms);
+      }
+      state.timer = setInterval(() => {
+        if (!state.playing) return;
+        const t = (performance.now() - state.startedAt) / 1000;
+        $('prog').value = Math.min(1, t / seq.duration); $('time').textContent = fmt(t) + ' / ' + fmt(seq.duration);
+        if (t >= seq.duration + 0.15) stop();
+      }, 40);
+    }
+    $('play').onclick = play;
+    $('stop').onclick = stop;
+    $('demo').onclick = async () => { state.midi = null; state.tracks = []; $('tracks').innerHTML = '<div class="item"><span>デモ曲：先頭の音源グループで自動演奏</span></div>'; await play() };
+
+    redrawCards();
+    initPerfMonitor();
+  </script>
+</body>
+
+</html>
